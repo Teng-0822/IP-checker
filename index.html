@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fraud Risk Checker</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>IP Lookup Tool</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 30px;
     }
-    #ip, #riskResult {
-      font-size: 22px;
-      margin-bottom: 15px;
+    #ip {
+      font-size: 24px;
+      margin-bottom: 10px;
     }
     button {
       padding: 10px 20px;
@@ -30,56 +31,44 @@
 </head>
 <body>
 
-  <h2>Check IP Fraud Risk</h2>
-  <div id="ip">Loading IP...</div>
-  <div id="riskResult"></div>
+  <h2>Your IP Address:</h2>
+  <div id="ip">Loading...</div>
 
   <button onclick="fetchIP()">🔄 Refresh IP</button>
-  <button onclick="checkRisk()">🔍 Check Fraud Risk</button>
+  <button onclick="openScamalytics()">🔍 Check on Scamalytics</button>
 
   <script>
     let userIP = '';
+    let scamalyticsWindow = null;
 
     function fetchIP() {
-      document.getElementById("ip").textContent = "Loading IP...";
-      document.getElementById("riskResult").textContent = "";
+      document.getElementById("ip").textContent = "Loading...";
       fetch('https://api.ipify.org?format=json')
         .then(res => res.json())
         .then(data => {
           userIP = data.ip;
-          document.getElementById("ip").textContent = "Your IP: " + userIP;
+          document.getElementById("ip").textContent = userIP;
         })
         .catch(() => {
-          document.getElementById("ip").textContent = "Failed to get IP.";
+          document.getElementById("ip").textContent = "Failed to load IP.";
         });
     }
 
-    function checkRisk() {
-      if (!userIP) return alert("IP not loaded yet!");
+    function openScamalytics() {
+      if (!userIP) {
+        alert("IP not loaded yet!");
+        return;
+      }
 
-      // Replace YOUR_API_KEY with your free IPQualityScore key
-      const apiKey = 'YOUR_API_KEY';
-      const url = `https://ipqualityscore.com/api/json/ip/${apiKey}/${userIP}`;
+      const url = `https://scamalytics.com/ip/${userIP}`;
 
-      document.getElementById("riskResult").textContent = "Checking risk level...";
-
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          const score = data.fraud_score;
-          let riskLevel = '';
-          if (score < 30) {
-            riskLevel = '✅ Low Risk';
-          } else if (score < 70) {
-            riskLevel = '⚠️ Medium Risk';
-          } else {
-            riskLevel = '❌ High Risk';
-          }
-          document.getElementById("riskResult").textContent = `Fraud Score: ${score} - ${riskLevel}`;
-        })
-        .catch(() => {
-          document.getElementById("riskResult").textContent = "Error fetching risk data.";
-        });
+      // Reuse or open Scamalytics tab
+      if (scamalyticsWindow && !scamalyticsWindow.closed) {
+        scamalyticsWindow.location.href = url;
+        scamalyticsWindow.focus(); // works on desktop, not mobile Safari
+      } else {
+        scamalyticsWindow = window.open(url, 'scamalyticsTab');
+      }
     }
 
     fetchIP();
