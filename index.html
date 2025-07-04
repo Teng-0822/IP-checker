@@ -2,17 +2,16 @@
 <html lang="en">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>IP Lookup Tool</title>
+  <title>Fraud Risk Checker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 30px;
     }
-    #ip {
-      font-size: 24px;
-      margin-bottom: 10px;
+    #ip, #riskResult {
+      font-size: 22px;
+      margin-bottom: 15px;
     }
     button {
       padding: 10px 20px;
@@ -31,48 +30,59 @@
 </head>
 <body>
 
-  <h2>Your IP Address:</h2>
-  <div id="ip">Loading...</div>
+  <h2>Check IP Fraud Risk</h2>
+  <div id="ip">Loading IP...</div>
+  <div id="riskResult"></div>
 
   <button onclick="fetchIP()">🔄 Refresh IP</button>
-  <button onclick="openScamalytics()">🔍 Check on Scamalytics</button>
+  <button onclick="checkRisk()">🔍 Check Fraud Risk</button>
 
   <script>
     let userIP = '';
-    let scamalyticsWindow = null;
 
     function fetchIP() {
-      document.getElementById("ip").textContent = "Loading...";
+      document.getElementById("ip").textContent = "Loading IP...";
+      document.getElementById("riskResult").textContent = "";
       fetch('https://api.ipify.org?format=json')
         .then(res => res.json())
         .then(data => {
           userIP = data.ip;
-          document.getElementById("ip").textContent = userIP;
+          document.getElementById("ip").textContent = "Your IP: " + userIP;
         })
         .catch(() => {
-          document.getElementById("ip").textContent = "Failed to load IP.";
+          document.getElementById("ip").textContent = "Failed to get IP.";
         });
     }
 
-    function openScamalytics() {
-      if (!userIP) {
-        alert("IP not loaded yet!");
-        return;
-      }
+    function checkRisk() {
+      if (!userIP) return alert("IP not loaded yet!");
 
-      const url = `https://scamalytics.com/ip/${userIP}`;
+      // Replace YOUR_API_KEY with your free IPQualityScore key
+      const apiKey = 'YOUR_API_KEY';
+      const url = `https://ipqualityscore.com/api/json/ip/${apiKey}/${userIP}`;
 
-      // Safari won't allow focus() to switch tab, but this works on desktop
-      if (scamalyticsWindow && !scamalyticsWindow.closed) {
-        scamalyticsWindow.location.href = url;
-        scamalyticsWindow.focus(); // ✅ This works on desktop
-      } else {
-        // open in named tab so it can be reused
-        scamalyticsWindow = window.open(url, 'scamalyticsTab');
-      }
+      document.getElementById("riskResult").textContent = "Checking risk level...";
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          const score = data.fraud_score;
+          let riskLevel = '';
+          if (score < 30) {
+            riskLevel = '✅ Low Risk';
+          } else if (score < 70) {
+            riskLevel = '⚠️ Medium Risk';
+          } else {
+            riskLevel = '❌ High Risk';
+          }
+          document.getElementById("riskResult").textContent = `Fraud Score: ${score} - ${riskLevel}`;
+        })
+        .catch(() => {
+          document.getElementById("riskResult").textContent = "Error fetching risk data.";
+        });
     }
 
-    fetchIP(); // load on start
+    fetchIP();
   </script>
 
 </body>
