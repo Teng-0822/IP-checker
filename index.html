@@ -34,43 +34,42 @@
   <h2>Your IP Address:</h2>
   <div id="ip">Loading...</div>
 
-  <button onclick="fetchIP()">🔄 Refresh IP</button>
-  <button onclick="openScamalytics()">🔍 Check on Scamalytics</button>
+  <button onclick="refreshAndOpen()">🔄 Refresh IP + Check</button>
 
   <script>
     let userIP = '';
     let scamalyticsWindow = null;
 
-    function fetchIP() {
+    async function fetchIP() {
       document.getElementById("ip").textContent = "Loading...";
-      fetch('https://api.ipify.org?format=json')
-        .then(res => res.json())
-        .then(data => {
-          userIP = data.ip;
-          document.getElementById("ip").textContent = userIP;
-        })
-        .catch(() => {
-          document.getElementById("ip").textContent = "Failed to load IP.";
-        });
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        userIP = data.ip;
+        document.getElementById("ip").textContent = userIP;
+        return userIP;
+      } catch {
+        document.getElementById("ip").textContent = "Failed to load IP.";
+        return null;
+      }
     }
 
-    function openScamalytics() {
-      if (!userIP) {
-        alert("IP not loaded yet!");
-        return;
-      }
+    async function refreshAndOpen() {
+      const ip = await fetchIP();
+      if (!ip) return;
 
-      const url = `https://scamalytics.com/ip/${userIP}`;
+      const url = `https://scamalytics.com/ip/${ip}`;
 
-      // Reuse or open Scamalytics tab
+      // Close previous window if still open
       if (scamalyticsWindow && !scamalyticsWindow.closed) {
-        scamalyticsWindow.location.href = url;
-        scamalyticsWindow.focus(); // works on desktop, not mobile Safari
-      } else {
-        scamalyticsWindow = window.open(url, 'scamalyticsTab');
+        scamalyticsWindow.close();
       }
+
+      // Open new popup window
+      scamalyticsWindow = window.open(url, 'scamalyticsPopup', 'width=1000,height=800');
     }
 
+    // Fetch IP on page load
     fetchIP();
   </script>
 
