@@ -40,37 +40,34 @@
     let userIP = '';
     let scamalyticsWindow = null;
 
-    async function fetchIP() {
-      document.getElementById("ip").textContent = "Loading...";
-      try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
+    // Get IP on page load
+    fetch('https://api.ipify.org?format=json')
+      .then(res => res.json())
+      .then(data => {
         userIP = data.ip;
         document.getElementById("ip").textContent = userIP;
-        return userIP;
-      } catch {
+      })
+      .catch(() => {
         document.getElementById("ip").textContent = "Failed to load IP.";
-        return null;
-      }
-    }
+      });
 
-    async function refreshAndOpen() {
-      const ip = await fetchIP();
-      if (!ip) return;
-
-      const url = `https://scamalytics.com/ip/${ip}`;
-
-      // Close previous window if still open
-      if (scamalyticsWindow && !scamalyticsWindow.closed) {
-        scamalyticsWindow.close();
+    function refreshAndOpen() {
+      // Open a blank tab immediately (Safari requires this inside user click)
+      if (!scamalyticsWindow || scamalyticsWindow.closed) {
+        scamalyticsWindow = window.open('about:blank', '_blank');
       }
 
-      // Open new popup window
-      scamalyticsWindow = window.open(url, 'scamalyticsPopup', 'width=1000,height=800');
+      // Fetch new IP and update tab
+      fetch('https://api.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => {
+          userIP = data.ip;
+          document.getElementById("ip").textContent = userIP;
+          const url = `https://scamalytics.com/ip/${userIP}`;
+          scamalyticsWindow.location.href = url;
+          scamalyticsWindow.focus();
+        });
     }
-
-    // Fetch IP on page load
-    fetchIP();
   </script>
 
 </body>
