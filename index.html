@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>IP Lookup Tool</title>
   <style>
     body {
@@ -61,18 +62,17 @@
 
       const url = `https://scamalytics.com/ip/${userIP}`;
 
-      // If window/tab already opened and not closed
+      // Safari won't allow focus() to switch tab, but this works on desktop
       if (scamalyticsWindow && !scamalyticsWindow.closed) {
         scamalyticsWindow.location.href = url;
-        scamalyticsWindow.focus();
+        scamalyticsWindow.focus(); // ✅ This works on desktop
       } else {
-        // Open new tab
+        // open in named tab so it can be reused
         scamalyticsWindow = window.open(url, 'scamalyticsTab');
       }
     }
 
-    // Fetch IP on load
-    fetchIP();
+    fetchIP(); // load on start
   </script>
 
 </body>
