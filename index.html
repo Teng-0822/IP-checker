@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IP Lookup Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    #ip {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Your IP Address:</h2>
+  <div id="ip">Loading...</div>
+
+  <button onclick="fetchIP()">🔄 Refresh IP</button>
+  <button onclick="openScamalytics()">🔍 Check on Scamalytics</button>
+
+  <script>
+    let userIP = '';
+    let scamalyticsWindow = null;
+
+    function fetchIP() {
+      document.getElementById("ip").textContent = "Loading...";
+      fetch('https://api.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => {
+          userIP = data.ip;
+          document.getElementById("ip").textContent = userIP;
+        })
+        .catch(() => {
+          document.getElementById("ip").textContent = "Failed to load IP.";
+        });
+    }
+
+    function openScamalytics() {
+      if (!userIP) {
+        alert("IP not loaded yet!");
+        return;
+      }
+
+      const url = `https://scamalytics.com/ip/${userIP}`;
+
+      // If window/tab already opened and not closed
+      if (scamalyticsWindow && !scamalyticsWindow.closed) {
+        scamalyticsWindow.location.href = url;
+        scamalyticsWindow.focus();
+      } else {
+        // Open new tab
+        scamalyticsWindow = window.open(url, 'scamalyticsTab');
+      }
+    }
+
+    // Fetch IP on load
+    fetchIP();
+  </script>
+
+</body>
+</html>
