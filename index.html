@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>IP Lookup Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    #ip {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Your IP Address:</h2>
+  <div id="ip">Loading...</div>
+
+  <button id="refreshBtn" onclick="refreshAndOpen()">🔄 Refresh IP + Check</button>
+
+  <script>
+    let userIP = '';
+    let scamalyticsWindow = null;
+
+    // Get IP on page load
+    fetch('https://api.ipify.org?format=json')
+      .then(res => res.json())
+      .then(data => {
+        userIP = data.ip;
+        document.getElementById("ip").textContent = userIP;
+      })
+      .catch(() => {
+        document.getElementById("ip").textContent = "Failed to load IP.";
+      });
+
+    function refreshAndOpen() {
+      const btn = document.getElementById("refreshBtn");
+
+      // Start loading
+      btn.disabled = true;
+      const oldText = btn.innerHTML;
+      btn.innerHTML = "⏳ Loading...";
+
+      // Open a blank tab immediately
+      if (!scamalyticsWindow || scamalyticsWindow.closed) {
+        scamalyticsWindow = window.open('about:blank', '_blank');
+      }
+
+      // Fetch new IP and update
+      fetch('https://api.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => {
+          userIP = data.ip;
+          document.getElementById("ip").textContent = userIP;
+
+          const url = `https://scamalytics.com/ip/${userIP}`;
+          scamalyticsWindow.location.href = url;
+          scamalyticsWindow.focus();
+        })
+        .finally(() => {
+          // End loading
+          btn.innerHTML = oldText;
+          btn.disabled = false;
+        });
+    }
+  </script>
+
+</body>
+</html>
