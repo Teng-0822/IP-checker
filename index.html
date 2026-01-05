@@ -48,7 +48,7 @@ async function getIP() {
     const data = await res.json();
     return data.ip;
   } catch {
-    return null; // force retry
+    return null;
   }
 }
 
@@ -78,7 +78,7 @@ async function checkIPLoop() {
     btn.disabled = false;
   } else {
     box.style.background = 'red';
-    startCountdown(10, checkIPLoop); // 🔁 ALWAYS retry
+    startCountdown(10, checkIPLoop);
   }
 }
 
@@ -91,7 +91,8 @@ btn.addEventListener('click', async () => {
 
   fetch(CHANGE_IP_URL).catch(() => {});
 
-  startCountdown(25, checkIPLoop);
+  // ⏱️ WAIT 45 SECONDS BEFORE FIRST CHECK
+  startCountdown(45, checkIPLoop);
 });
 </script>
 
