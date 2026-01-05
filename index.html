@@ -5,32 +5,22 @@
 <title>IP Change Checker</title>
 
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    padding: 20px;
-  }
-
-  button {
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-  }
-
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
   #box {
     display: inline-block;
     width: 30px;
     height: 30px;
     margin-left: 12px;
     border: 2px solid #ccc;
-    vertical-align: middle;
     background: #eee;
+    vertical-align: middle;
   }
-
   #countdown {
-    display: inline-block;
     margin-left: 10px;
     font-size: 14px;
     color: #555;
+    display: inline-block;
     min-width: 60px;
   }
 </style>
@@ -53,9 +43,13 @@ let oldIP = null;
 let countdownTimer = null;
 
 async function getIP() {
-  const res = await fetch(IP_API);
-  const data = await res.json();
-  return data.ip;
+  try {
+    const res = await fetch(IP_API, { cache: 'no-store' });
+    const data = await res.json();
+    return data.ip;
+  } catch {
+    return null; // force retry
+  }
 }
 
 function startCountdown(seconds, callback) {
@@ -75,14 +69,16 @@ function startCountdown(seconds, callback) {
 }
 
 async function checkIPLoop() {
+  box.style.background = 'yellow';
+
   const newIP = await getIP();
 
-  if (newIP !== oldIP) {
+  if (newIP && newIP !== oldIP) {
     box.style.background = 'green';
     btn.disabled = false;
   } else {
     box.style.background = 'red';
-    startCountdown(10, checkIPLoop); // retry after 10 sec
+    startCountdown(10, checkIPLoop); // 🔁 ALWAYS retry
   }
 }
 
@@ -91,13 +87,10 @@ btn.addEventListener('click', async () => {
   box.style.background = '#eee';
   countdownEl.textContent = '';
 
-  // Store current IP
   oldIP = await getIP();
 
-  // Trigger IP change (background)
   fetch(CHANGE_IP_URL).catch(() => {});
 
-  // Wait 25 seconds before checking
   startCountdown(25, checkIPLoop);
 });
 </script>
