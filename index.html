@@ -20,10 +20,18 @@
     display: inline-block;
     width: 30px;
     height: 30px;
-    margin-left: 15px;
+    margin-left: 12px;
     border: 2px solid #ccc;
     vertical-align: middle;
     background: #eee;
+  }
+
+  #countdown {
+    display: inline-block;
+    margin-left: 10px;
+    font-size: 14px;
+    color: #555;
+    min-width: 60px;
   }
 </style>
 </head>
@@ -31,6 +39,7 @@
 
 <button id="changeBtn">Change IP</button>
 <div id="box"></div>
+<div id="countdown"></div>
 
 <script>
 const CHANGE_IP_URL = 'https://i.fxdx.in/actionlinks/do/changeip/YTbojipTQnuowNvn2MkNoA';
@@ -38,13 +47,31 @@ const IP_API = 'https://api.ipify.org?format=json';
 
 const btn = document.getElementById('changeBtn');
 const box = document.getElementById('box');
+const countdownEl = document.getElementById('countdown');
 
 let oldIP = null;
+let countdownTimer = null;
 
 async function getIP() {
   const res = await fetch(IP_API);
   const data = await res.json();
   return data.ip;
+}
+
+function startCountdown(seconds, callback) {
+  clearInterval(countdownTimer);
+  countdownEl.textContent = seconds + 's';
+
+  countdownTimer = setInterval(() => {
+    seconds--;
+    countdownEl.textContent = seconds + 's';
+
+    if (seconds <= 0) {
+      clearInterval(countdownTimer);
+      countdownEl.textContent = '';
+      callback();
+    }
+  }, 1000);
 }
 
 async function checkIPLoop() {
@@ -55,22 +82,23 @@ async function checkIPLoop() {
     btn.disabled = false;
   } else {
     box.style.background = 'red';
-    setTimeout(checkIPLoop, 10000); // retry after 10 sec
+    startCountdown(10, checkIPLoop); // retry after 10 sec
   }
 }
 
 btn.addEventListener('click', async () => {
   btn.disabled = true;
   box.style.background = '#eee';
+  countdownEl.textContent = '';
 
-  // 1️⃣ Store current IP
+  // Store current IP
   oldIP = await getIP();
 
-  // 2️⃣ Trigger IP change in background
+  // Trigger IP change (background)
   fetch(CHANGE_IP_URL).catch(() => {});
 
-  // 3️⃣ Wait 25 seconds then start checking
-  setTimeout(checkIPLoop, 25000);
+  // Wait 25 seconds before checking
+  startCountdown(25, checkIPLoop);
 });
 </script>
 
