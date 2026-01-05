@@ -1,89 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>IP Lookup Tool</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 30px;
-    }
-    #ip {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      font-size: 16px;
-      border: none;
-      border-radius: 6px;
-      background-color: #007bff;
-      color: white;
-      cursor: pointer;
-      transition: opacity .2s;
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>IP Change Checker</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+  }
+
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  #box {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    margin-left: 15px;
+    border: 2px solid #ccc;
+    vertical-align: middle;
+    background: #eee;
+  }
+</style>
 </head>
 <body>
 
-  <h2>Your IP Address:</h2>
-  <div id="ip">Loading...</div>
+<button id="changeBtn">Change IP</button>
+<div id="box"></div>
 
-  <button id="refreshBtn" onclick="refreshAndOpen()">🔄 Refresh IP + Check</button>
+<script>
+const CHANGE_IP_URL = 'https://i.fxdx.in/actionlinks/do/changeip/YTbojipTQnuowNvn2MkNoA';
+const IP_API = 'https://api.ipify.org?format=json';
 
-  <script>
-    let userIP = '';
-    let scamalyticsWindow = null;
+const btn = document.getElementById('changeBtn');
+const box = document.getElementById('box');
 
-    // Get IP on page load
-    fetch('https://api.ipify.org?format=json')
-      .then(res => res.json())
-      .then(data => {
-        userIP = data.ip;
-        document.getElementById("ip").textContent = userIP;
-      })
-      .catch(() => {
-        document.getElementById("ip").textContent = "Failed to load IP.";
-      });
+let oldIP = null;
 
-    function refreshAndOpen() {
-      const btn = document.getElementById("refreshBtn");
+async function getIP() {
+  const res = await fetch(IP_API);
+  const data = await res.json();
+  return data.ip;
+}
 
-      // Start loading
-      btn.disabled = true;
-      const oldText = btn.innerHTML;
-      btn.innerHTML = "⏳ Loading...";
+async function checkIPLoop() {
+  const newIP = await getIP();
 
-      // Open a blank tab immediately
-      if (!scamalyticsWindow || scamalyticsWindow.closed) {
-        scamalyticsWindow = window.open('about:blank', '_blank');
-      }
+  if (newIP !== oldIP) {
+    box.style.background = 'green';
+    btn.disabled = false;
+  } else {
+    box.style.background = 'red';
+    setTimeout(checkIPLoop, 10000); // retry after 10 sec
+  }
+}
 
-      // Fetch new IP and update
-      fetch('https://api.ipify.org?format=json')
-        .then(res => res.json())
-        .then(data => {
-          userIP = data.ip;
-          document.getElementById("ip").textContent = userIP;
+btn.addEventListener('click', async () => {
+  btn.disabled = true;
+  box.style.background = '#eee';
 
-          const url = `https://scamalytics.com/ip/${userIP}`;
-          scamalyticsWindow.location.href = url;
-          scamalyticsWindow.focus();
-        })
-        .finally(() => {
-          // End loading
-          btn.innerHTML = oldText;
-          btn.disabled = false;
-        });
-    }
-  </script>
+  // 1️⃣ Store current IP
+  oldIP = await getIP();
+
+  // 2️⃣ Trigger IP change in background
+  fetch(CHANGE_IP_URL).catch(() => {});
+
+  // 3️⃣ Wait 25 seconds then start checking
+  setTimeout(checkIPLoop, 25000);
+});
+</script>
 
 </body>
 </html>
