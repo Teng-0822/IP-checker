@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Public IP Address Checker</title>
+    <title>Public IP + Scamalytics Fraud Check</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -19,95 +19,161 @@
             background: white;
             padding: 40px;
             border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
             text-align: center;
-            max-width: 500px;
-            width: 90%;
+            max-width: 540px;
+            width: 92%;
         }
         h1 {
             margin-top: 0;
-            color: #4a5568;
+            color: #2d3748;
             font-size: 28px;
         }
         p {
             color: #718096;
             font-size: 16px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         #ip-display {
             font-size: 32px;
             font-weight: bold;
             color: #2d3748;
-            margin: 30px 0;
-            min-height: 50px;
+            margin: 20px 0 10px;
             word-break: break-all;
         }
+        #fraud-result {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 25px 0;
+            padding: 18px;
+            border-radius: 12px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+        }
+        .loading  { background: #f0f4ff; color: #718096; font-style: italic; }
+        .low-risk   { background: #d4f4dd; color: #166534; border: 2px solid #16a34a; }
+        .medium-risk{ background: #fef3c7; color: #92400e; border: 2px solid #d97706; }
+        .high-risk  { background: #fee2e2; color: #991b1b; border: 2px solid #dc2626; }
+        .error      { background: #fee2e2; color: #991b1b; border: 2px solid #dc2626; }
         button {
             background-color: #667eea;
             color: white;
             border: none;
-            padding: 14px 32px;
+            padding: 14px 36px;
             font-size: 18px;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 18px rgba(102, 126, 234, 0.35);
         }
         button:hover {
             background-color: #5a6fd8;
+            transform: translateY(-2px);
         }
-        button:active {
-            transform: translateY(1px);
-        }
-        .loading {
-            color: #a0aec0;
-            font-style: italic;
-        }
-        .error {
-            color: #e53e3e;
+        .small-text {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Public IP Address Checker</h1>
-        <p>Click the button below to fetch your current public IP address.</p>
-        
-        <div id="ip-display" class="loading">Your IP will appear here...</div>
-        
-        <button id="check-ip-btn">Check My IP</button>
+        <h1>IP Address + Fraud Check</h1>
+        <p>Shows your public IP and Scamalytics fraud risk score</p>
+
+        <div id="ip-display" class="loading">Fetching your IP...</div>
+        <div id="fraud-result" class="loading">Waiting for fraud check...</div>
+
+        <button id="check-btn">Check Again</button>
+
+        <div class="small-text">
+            Powered by ipify.org & scamalytics.com (web lookup – may change without notice)
+        </div>
     </div>
 
     <script>
         const ipDisplay = document.getElementById('ip-display');
-        const checkBtn = document.getElementById('check-ip-btn');
+        const fraudResult = document.getElementById('fraud-result');
+        const checkBtn = document.getElementById('check-btn');
 
-        function fetchIP() {
-            // Show loading state
-            ipDisplay.textContent = 'Fetching your IP address...';
+        async function checkIPAndFraud() {
+            // Reset UI
+            ipDisplay.textContent = 'Fetching your IP...';
             ipDisplay.className = 'loading';
+            fraudResult.textContent = 'Checking fraud score...';
+            fraudResult.className = 'loading';
 
-            fetch('https://api.ipify.org?format=json')
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    ipDisplay.textContent = data.ip;
-                    ipDisplay.className = '';
-                })
-                .catch(error => {
-                    ipDisplay.textContent = 'Error: Could not retrieve IP';
-                    ipDisplay.className = 'error';
-                    console.error('Error fetching IP:', error);
+            try {
+                // 1. Get public IP
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                const ip = ipData.ip;
+
+                ipDisplay.textContent = ip;
+                ipDisplay.className = '';
+
+                // 2. Check Scamalytics (web page scraping - fragile!)
+                const scamRes = await fetch(`https://scamalytics.com/ip/${ip}`, {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; IP-Checker/1.0)' }
                 });
+
+                if (!scamRes.ok) throw new Error('Scamalytics page not available');
+
+                const html = await scamRes.text();
+
+                // Very simple & fragile parsing (works as of early 2025 – may break)
+                let score = 'Unknown';
+                let verdict = 'Could not parse result';
+
+                const scoreMatch = html.match(/Fraud Score:<\/strong>\s*(\d+)\/100/i) ||
+                                  html.match(/Fraud Score.*?(\d+)\s*\/\s*100/i);
+
+                if (scoreMatch) {
+                    score = parseInt(scoreMatch[1], 10);
+                    verdict = getVerdict(score);
+                } else if (html.includes('low fraud risk') || html.includes('Low Risk')) {
+                    score = '<10';
+                    verdict = 'Low risk';
+                } else if (html.includes('high fraud risk') || html.includes('High Risk')) {
+                    score = '>60';
+                    verdict = 'High risk';
+                }
+
+                fraudResult.textContent = `Fraud Score: ${score}/100 — ${verdict}`;
+                fraudResult.className = getClassForScore(score);
+
+            } catch (err) {
+                console.error(err);
+                ipDisplay.textContent = 'Error getting IP';
+                ipDisplay.className = 'error';
+                fraudResult.textContent = 'Error checking fraud score';
+                fraudResult.className = 'error';
+            }
         }
 
-        // Load IP automatically when page opens
-        fetchIP();
+        function getVerdict(score) {
+            if (typeof score === 'string') return score;
+            if (score <= 15) return 'Low risk ✓ (probably safe)';
+            if (score <= 50) return 'Medium risk ⚠️';
+            return 'High risk ✗ (proxy/VPN/datacenter/tor likely)';
+        }
 
-        // Also load when button is clicked
-        checkBtn.addEventListener('click', fetchIP);
+        function getClassForScore(score) {
+            if (typeof score === 'string') return 'medium-risk';
+            if (score <= 15) return 'low-risk';
+            if (score <= 50) return 'medium-risk';
+            return 'high-risk';
+        }
+
+        // Run on page load
+        checkIPAndFraud();
+
+        // Run again on button click
+        checkBtn.addEventListener('click', checkIPAndFraud);
     </script>
 </body>
 </html>
