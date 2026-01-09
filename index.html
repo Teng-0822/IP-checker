@@ -3,177 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Public IP + Scamalytics Fraud Check</title>
+    <title>Public IP → Scamalytics Check</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #333;
+            color: #111;
         }
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.97);
             padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
             text-align: center;
-            max-width: 540px;
-            width: 92%;
+            max-width: 520px;
+            width: 90%;
         }
         h1 {
+            color: #1e293b;
             margin-top: 0;
-            color: #2d3748;
-            font-size: 28px;
-        }
-        p {
-            color: #718096;
-            font-size: 16px;
-            margin-bottom: 25px;
+            font-size: 2.1rem;
         }
         #ip-display {
-            font-size: 32px;
+            font-size: 2.4rem;
             font-weight: bold;
-            color: #2d3748;
-            margin: 20px 0 10px;
-            word-break: break-all;
-        }
-        #fraud-result {
-            font-size: 24px;
-            font-weight: bold;
+            color: #0f172a;
             margin: 25px 0;
-            padding: 18px;
+            word-break: break-all;
+            padding: 12px;
+            background: #f1f5f9;
             border-radius: 12px;
-            min-height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.4s ease;
         }
-        .loading  { background: #f0f4ff; color: #718096; font-style: italic; }
-        .low-risk   { background: #d4f4dd; color: #166534; border: 2px solid #16a34a; }
-        .medium-risk{ background: #fef3c7; color: #92400e; border: 2px solid #d97706; }
-        .high-risk  { background: #fee2e2; color: #991b1b; border: 2px solid #dc2626; }
-        .error      { background: #fee2e2; color: #991b1b; border: 2px solid #dc2626; }
+        .status {
+            font-size: 1.1rem;
+            margin: 15px 0;
+            color: #475569;
+        }
         button {
-            background-color: #667eea;
+            background: #6366f1;
             color: white;
             border: none;
-            padding: 14px 36px;
-            font-size: 18px;
-            border-radius: 10px;
+            padding: 16px 40px;
+            font-size: 1.2rem;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 18px rgba(102, 126, 234, 0.35);
+            transition: all 0.25s ease;
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
         }
         button:hover {
-            background-color: #5a6fd8;
+            background: #4f46e5;
             transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.45);
         }
-        .small-text {
-            font-size: 13px;
-            color: #718096;
-            margin-top: 20px;
+        .small {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #64748b;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>IP Address + Fraud Check</h1>
-        <p>Shows your public IP and Scamalytics fraud risk score</p>
+        <h1>Your Public IP → Fraud Check</h1>
+        
+        <div id="ip-display" class="loading">Click to load your IP...</div>
+        
+        <div class="status" id="status">Waiting...</div>
 
-        <div id="ip-display" class="loading">Fetching your IP...</div>
-        <div id="fraud-result" class="loading">Waiting for fraud check...</div>
+        <button id="check-btn">Get IP & Open Scamalytics</button>
 
-        <button id="check-btn">Check Again</button>
-
-        <div class="small-text">
-            Powered by ipify.org & scamalytics.com (web lookup – may change without notice)
+        <div class="small">
+            Powered by ipify.org • Opens scamalytics.com/ip/YOUR-IP in new tab
         </div>
     </div>
 
     <script>
         const ipDisplay = document.getElementById('ip-display');
-        const fraudResult = document.getElementById('fraud-result');
+        const status = document.getElementById('status');
         const checkBtn = document.getElementById('check-btn');
 
-        async function checkIPAndFraud() {
-            // Reset UI
-            ipDisplay.textContent = 'Fetching your IP...';
-            ipDisplay.className = 'loading';
-            fraudResult.textContent = 'Checking fraud score...';
-            fraudResult.className = 'loading';
+        async function getAndCheckIP() {
+            ipDisplay.textContent = 'Loading your IP...';
+            status.textContent = 'Fetching IP address...';
 
             try {
-                // 1. Get public IP
-                const ipRes = await fetch('https://api.ipify.org?format=json');
-                const ipData = await ipRes.json();
-                const ip = ipData.ip;
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                const ip = data.ip;
 
                 ipDisplay.textContent = ip;
-                ipDisplay.className = '';
+                status.textContent = 'IP loaded! Opening Scamalytics...';
 
-                // 2. Check Scamalytics (web page scraping - fragile!)
-                const scamRes = await fetch(`https://scamalytics.com/ip/${ip}`, {
-                    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; IP-Checker/1.0)' }
-                });
+                // Automatically open Scamalytics in a new tab
+                const scamUrl = `https://scamalytics.com/ip/${ip}`;
+                window.open(scamUrl, '_blank');
 
-                if (!scamRes.ok) throw new Error('Scamalytics page not available');
-
-                const html = await scamRes.text();
-
-                // Very simple & fragile parsing (works as of early 2025 – may break)
-                let score = 'Unknown';
-                let verdict = 'Could not parse result';
-
-                const scoreMatch = html.match(/Fraud Score:<\/strong>\s*(\d+)\/100/i) ||
-                                  html.match(/Fraud Score.*?(\d+)\s*\/\s*100/i);
-
-                if (scoreMatch) {
-                    score = parseInt(scoreMatch[1], 10);
-                    verdict = getVerdict(score);
-                } else if (html.includes('low fraud risk') || html.includes('Low Risk')) {
-                    score = '<10';
-                    verdict = 'Low risk';
-                } else if (html.includes('high fraud risk') || html.includes('High Risk')) {
-                    score = '>60';
-                    verdict = 'High risk';
-                }
-
-                fraudResult.textContent = `Fraud Score: ${score}/100 — ${verdict}`;
-                fraudResult.className = getClassForScore(score);
+                // Optional: focus back on this window (some browsers allow it)
+                window.focus();
 
             } catch (err) {
                 console.error(err);
                 ipDisplay.textContent = 'Error getting IP';
-                ipDisplay.className = 'error';
-                fraudResult.textContent = 'Error checking fraud score';
-                fraudResult.className = 'error';
+                status.textContent = 'Could not load IP address. Try again.';
+                ipDisplay.style.color = '#ef4444';
             }
         }
 
-        function getVerdict(score) {
-            if (typeof score === 'string') return score;
-            if (score <= 15) return 'Low risk ✓ (probably safe)';
-            if (score <= 50) return 'Medium risk ⚠️';
-            return 'High risk ✗ (proxy/VPN/datacenter/tor likely)';
-        }
+        // Run once when page loads
+        getAndCheckIP();
 
-        function getClassForScore(score) {
-            if (typeof score === 'string') return 'medium-risk';
-            if (score <= 15) return 'low-risk';
-            if (score <= 50) return 'medium-risk';
-            return 'high-risk';
-        }
-
-        // Run on page load
-        checkIPAndFraud();
-
-        // Run again on button click
-        checkBtn.addEventListener('click', checkIPAndFraud);
+        // And again when button clicked
+        checkBtn.addEventListener('click', getAndCheckIP);
     </script>
 </body>
 </html>
