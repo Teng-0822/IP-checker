@@ -1,124 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Public IP → Scamalytics Check</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #111;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.97);
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            text-align: center;
-            max-width: 520px;
-            width: 90%;
-        }
-        h1 {
-            color: #1e293b;
-            margin-top: 0;
-            font-size: 2.1rem;
-        }
-        #ip-display {
-            font-size: 2.4rem;
-            font-weight: bold;
-            color: #0f172a;
-            margin: 25px 0;
-            word-break: break-all;
-            padding: 12px;
-            background: #f1f5f9;
-            border-radius: 12px;
-        }
-        .status {
-            font-size: 1.1rem;
-            margin: 15px 0;
-            color: #475569;
-        }
-        button {
-            background: #6366f1;
-            color: white;
-            border: none;
-            padding: 16px 40px;
-            font-size: 1.2rem;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
-        }
-        button:hover {
-            background: #4f46e5;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.45);
-        }
-        .small {
-            margin-top: 30px;
-            font-size: 0.9rem;
-            color: #64748b;
-        }
-    </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>IP Lookup Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    #ip {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Your Public IP → Fraud Check</h1>
-        
-        <div id="ip-display" class="loading">Click to load your IP...</div>
-        
-        <div class="status" id="status">Waiting...</div>
 
-        <button id="check-btn">Get IP & Open Scamalytics</button>
+  <h2>Your IP Address:</h2>
+  <div id="ip">Loading...</div>
 
-        <div class="small">
-            Powered by ipify.org • Opens scamalytics.com/ip/YOUR-IP in new tab
-        </div>
-    </div>
+  <button id="refreshBtn" onclick="refreshAndOpen()">🔄 Refresh IP + Check</button>
 
-    <script>
-        const ipDisplay = document.getElementById('ip-display');
-        const status = document.getElementById('status');
-        const checkBtn = document.getElementById('check-btn');
+  <script>
+    let userIP = '';
+    let scamalyticsWindow = null;
 
-        async function getAndCheckIP() {
-            ipDisplay.textContent = 'Loading your IP...';
-            status.textContent = 'Fetching IP address...';
+    // Get IP on page load
+    fetch('https://api.ipify.org?format=json')
+      .then(res => res.json())
+      .then(data => {
+        userIP = data.ip;
+        document.getElementById("ip").textContent = userIP;
+      })
+      .catch(() => {
+        document.getElementById("ip").textContent = "Failed to load IP.";
+      });
 
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                const ip = data.ip;
+    function refreshAndOpen() {
+      const btn = document.getElementById("refreshBtn");
 
-                ipDisplay.textContent = ip;
-                status.textContent = 'IP loaded! Opening Scamalytics...';
+      // Start loading
+      btn.disabled = true;
+      const oldText = btn.innerHTML;
+      btn.innerHTML = "⏳ Loading...";
 
-                // Automatically open Scamalytics in a new tab
-                const scamUrl = `https://scamalytics.com/ip/${ip}`;
-                window.open(scamUrl, '_blank');
+      // Open a blank tab immediately
+      if (!scamalyticsWindow || scamalyticsWindow.closed) {
+        scamalyticsWindow = window.open('about:blank', '_blank');
+      }
 
-                // Optional: focus back on this window (some browsers allow it)
-                window.focus();
+      // Fetch new IP and update
+      fetch('https://api.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => {
+          userIP = data.ip;
+          document.getElementById("ip").textContent = userIP;
 
-            } catch (err) {
-                console.error(err);
-                ipDisplay.textContent = 'Error getting IP';
-                status.textContent = 'Could not load IP address. Try again.';
-                ipDisplay.style.color = '#ef4444';
-            }
-        }
+          const url = `https://scamalytics.com/ip/${userIP}`;
+          scamalyticsWindow.location.href = url;
+          scamalyticsWindow.focus();
+        })
+        .finally(() => {
+          // End loading
+          btn.innerHTML = oldText;
+          btn.disabled = false;
+        });
+    }
+  </script>
 
-        // Run once when page loads
-        getAndCheckIP();
-
-        // And again when button clicked
-        checkBtn.addEventListener('click', getAndCheckIP);
-    </script>
 </body>
 </html>
